@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>To-Do List</title>
+    <meta charset="UTF-8">
+  </head>
+  <body>
+    <input id="todo-title" type="text">
+    <input id="date-picker" type="date">
+    <button onclick="addTodo()" >Add Todo</button>
+
+    <div id="todo-list"></div>
+
+    <script>
+      // Model
+      // If localStorage has a todos array, then use it
+      // Otherwise use the default array.
+      let todos;
+
+      // Retrive localStorage
+      const savedTodos = JSON.parse(localStorage.getItem('todos'));
+      // Check if it's an array
+      if (Array.isArray(savedTodos)) {
+        todos = savedTodos;
+      } else {
+          todos = [{
+          title: 'Get groceries',
+          dueDate: '2022-10-22',
+          id: 'id1'
+        }, {
+          title: 'Washing dishes',
+          dueDate: '2022-11-03',
+          id: 'id2'
+        }, {
+          title: 'Make dinner',
+          dueDate: '2022-12-18',
+          id: 'id3'
+        }];
+      }
+        
+      render();
+
+      // Create a todo
+      function createTodo(title,dueDate) {
+        const id = '' + new Date().getTime (); //add '' to variable to change number to string.
+        //let editTodo;
+
+        todos.push({
+          title: title,
+          dueDate: dueDate,
+          id: id //new id todo is initially a number, needs to change to string
+          //isEditing: editTodo
+        });
+
+        saveTodos();
+      }
+
+      // Delete a todo
+      function removeTodo(idToDelete) {
+        todos = todos.filter(function (todo) {
+          //if id of todo matches idToDelete, return false
+          //For evertything else, returns true
+          if (todo.id === idToDelete) { //initially todo.id is a number and 
+            return false;               //idToDelete is a string taken from button click
+          } else {
+            return true;
+          }
+        });
+
+        saveTodos();
+      }
+
+      // Edit Todo in List
+      function setEditTodo (idToEdit) {
+        todos.forEach(function (todo) {
+          if (todo.id === idToEdit) {
+            todo.isEditing = true;
+          } 
+        });
+
+        saveTodos();
+      }
+
+      // Edit Todo in List
+      function setUpdateTodo (idToUpdate, newTitle, newDate) {
+        todos.forEach(function (todo) {
+          if (todo.id === idToUpdate) {
+            todo.title = newTitle;
+            todo.dueDate = newDate;
+            todo.isEditing = false;
+          }
+        });
+
+        saveTodos();
+      }
+
+      // Toggle check Todo
+      function toggleTodo(checked,checkId) {
+        todos.filter(function (todo) {
+          if (todo.id === checkId) {
+            todo.isDone = checked;
+          } 
+        });
+      }
+
+      // to save todos item
+      function saveTodos() {
+        localStorage.setItem('todos', JSON.stringify(todos));
+      }
+    
+      // Controller
+      function addTodo() {
+        const textbox = document.getElementById('todo-title');
+        const title = textbox.value;
+
+        const datePicker = document.getElementById('date-picker');
+        const dueDate = datePicker.value;
+
+        createTodo(title,dueDate);
+        render();
+      }
+      
+      // Delete Todo
+      function deleteTodo (event) {
+        console.log(event);
+        const deleteButton = event.target;
+        const idToDelete = deleteButton.id;
+
+        removeTodo(idToDelete);
+        render();
+      }
+
+      // Edit Todo
+      function onEdit (event) {
+        console.log(event);
+        const editTarget = event.target;
+        const idToEdit = editTarget.dataset.todoId;
+
+        setEditTodo(idToEdit);
+        render();
+      }
+
+      // Update Todo
+      function onUpdate(event) {
+        console.log(event);
+        const updateTarget = event.target;
+        const idToUpdate = updateTarget.dataset.todoId;
+
+        const newTextbox = document.getElementById('edit-title-' + idToUpdate);
+        const newTitle = newTextbox.value;
+
+        const datePicker = document.getElementById('edit-date-' + idToUpdate);
+        const newDate = datePicker.value; 
+        
+        setUpdateTodo(idToUpdate, newTitle, newDate);
+        render();
+        
+      }
+
+      // Check Todo 
+      function checkTodo(event) {
+        console.log(event);
+        const checkStats = event.target;
+        const checkId = checkStats.dataset.todoId;
+        const checked = checkStats.checked;
+
+        toggleTodo(checked,checkId)
+        render();
+      }
+
+      // View
+      function render() {
+        //reset our list
+        document.getElementById('todo-list').innerHTML = '';
+
+        todos.forEach(function (todo) {
+
+          const element = document.createElement('div');
+
+          if (todo.isEditing === true) { // if isEditing is true, editted, render this
+            const newTextbox = document.createElement('input');
+            newTextbox.type = 'text';
+            newTextbox.style = 'margin-right: 4px;';
+            newTextbox.id = 'edit-title-' + todo.id;
+            element.appendChild(newTextbox);
+
+            const datePicker = document.createElement('input');
+            datePicker.type = 'date';
+            datePicker.style = 'margin-right: 4px;';
+            datePicker.id = 'edit-date-' + todo.id;
+            element.appendChild(datePicker);
+
+            const updateButton = document.createElement('button');
+            updateButton.innerText = 'Update';
+            updateButton.style = 'margin-right: 4px;';
+            updateButton.dataset.todoId = todo.id;
+            updateButton.onclick = onUpdate;
+            element.appendChild(updateButton);
+
+          } else { // if isEditing is false, no edits, render the same
+            element.innerText = todo.title + ' ' + todo.dueDate;
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.onchange = checkTodo;
+            checkbox.dataset.todoId = todo.id;
+            if (todo.isDone === true) { // check isDone and render checkbox current status
+              checkbox.checked = true;
+            } else {
+              checkbox.checked = false;
+            }
+            element.prepend(checkbox); // prepend: allows checkbox to be in front before text
+
+            const editButton = document.createElement('button');
+            editButton.innerText = 'Edit';
+            editButton.style = 'margin-left: 12px;'
+            editButton.onclick = onEdit;
+            editButton.dataset.todoId = todo.id;
+            element.appendChild(editButton);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.innerText = 'Delete';
+            deleteButton.style = 'margin-left: 12px;';
+            deleteButton.onclick = deleteTodo;
+            deleteButton.id = todo.id;
+            element.appendChild(deleteButton);
+          }
+
+          const todoList = document.getElementById('todo-list');
+          todoList.appendChild(element);
+        });
+
+      }
+
+      const addTodo2 = function () { // anything you can with a string you can do to a function
+        return function () {};
+      };
+
+      const addTodo3 = (todo, title) => 'string'; // arrow function can do in one line, after arrow is return value
+
+      render();
+      
+    </script>
+  </body>
+</html>
